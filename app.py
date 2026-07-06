@@ -12,33 +12,39 @@ if 'p1_hp' not in st.session_state:
 def attack(attacker, defender):
     damage = random.randint(10, 20)
     if defender == "Player 1":
-        st.session_state.p1_hp -= damage
+        st.session_state.p1_hp = max(0, st.session_state.p1_hp - damage)
     else:
-        st.session_state.p2_hp -= damage
+        st.session_state.p2_hp = max(0, st.session_state.p2_hp - damage)
     return damage
 
 # Display Health Bars
 st.write(f"**Player 1 HP:** {st.session_state.p1_hp}")
-st.progress(st.session_state.p1_hp)
+# Dividing by 100 ensures the value is between 0.0 and 1.0
+st.progress(st.session_state.p1_hp / 100)
 
 st.write(f"**Player 2 HP:** {st.session_state.p2_hp}")
-st.progress(st.session_state.p2_hp)
+st.progress(st.session_state.p2_hp / 100)
 
 # Game Actions
-if st.button("🔥 Attack!"):
-    if st.session_state.turn == "Player 1":
-        dmg = attack("Player 1", "Player 2")
-        st.write(f"Player 1 dealt {dmg} damage!")
-        st.session_state.turn = "Player 2"
-    else:
-        dmg = attack("Player 2", "Player 1")
-        st.write(f"Player 2 dealt {dmg} damage!")
-        st.session_state.turn = "Player 1"
-    st.rerun()
-
-if st.session_state.p1_hp <= 0 or st.session_state.p2_hp <= 0:
-    st.success("Game Over! Restart to play again.")
-    if st.button("Reset"):
-        st.session_state.p1_hp = 100
-        st.session_state.p2_hp = 100
+if st.session_state.p1_hp > 0 and st.session_state.p2_hp > 0:
+    st.write(f"Current Turn: **{st.session_state.turn}**")
+    
+    if st.button("🔥 Attack!"):
+        if st.session_state.turn == "Player 1":
+            dmg = attack("Player 1", "Player 2")
+            st.write(f"Player 1 dealt {dmg} damage!")
+            st.session_state.turn = "Player 2"
+        else:
+            dmg = attack("Player 2", "Player 1")
+            st.write(f"Player 2 dealt {dmg} damage!")
+            st.session_state.turn = "Player 1"
         st.rerun()
+else:
+    winner = "Player 1" if st.session_state.p1_hp > 0 else "Player 2"
+    st.success(f"Game Over! {winner} Wins! 🎉")
+
+if st.button("Reset Game"):
+    st.session_state.p1_hp = 100
+    st.session_state.p2_hp = 100
+    st.session_state.turn = "Player 1"
+    st.rerun()
