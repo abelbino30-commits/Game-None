@@ -1,50 +1,57 @@
 import streamlit as st
 import random
 
-st.title("🥊 Turn-Based Brawler")
+st.title("🥊 Multi-Player Brawler")
 
-# Initialize game state
-if 'p1_hp' not in st.session_state:
-    st.session_state.p1_hp = 100
-    st.session_state.p2_hp = 100
-    st.session_state.turn = "Player 1"
+# Configuration
+NUM_PLAYERS = 6
 
-def attack(attacker, defender):
-    damage = random.randint(10, 20)
-    if defender == "Player 1":
-        st.session_state.p1_hp = max(0, st.session_state.p1_hp - damage)
-    else:
-        st.session_state.p2_hp = max(0, st.session_state.p2_hp - damage)
-    return damage
+# Initialize game state for all players
+if 'players' not in st.session_state:
+    st.session_state.players = {f"Player {i+1}": 100 for i in range(NUM_PLAYERS)}
+    st.session_state.turn_idx = 0
+    st.session_state.active_players = NUM_PLAYERS
 
-# Display Health Bars
-st.write(f"**Player 1 HP:** {st.session_state.p1_hp}")
-# Dividing by 100 ensures the value is between 0.0 and 1.0
-st.progress(st.session_state.p1_hp / 100)
+# Helper to get current player name
+player_names = list(st.session_state.players.keys())
+current_player = player_names[st.session_state.turn_idx]
 
-st.write(f"**Player 2 HP:** {st.session_state.p2_hp}")
-st.progress(st.session_state.p2_hp / 100)
+# Display Health for all players
+st.subheader("Health Status")
+for name, hp in st.session_state.players.items():
+    col1, col2 = st.columns([1, 3])
+    col1.write(f"**{name}**")
+    col2.progress(max(0, hp) / 100)
 
-# Game Actions
-if st.session_state.p1_hp > 0 and st.session_state.p2_hp > 0:
-    st.write(f"Current Turn: **{st.session_state.turn}**")
+# Game Logic
+if st.session_state.active_players > 1:
+    st.write(f"It is **{current_player}'s** turn!")
+    
+    # Choose a target
+    target = st.selectbox("Select target to attack:", 
+                          [p for p in player_names if p != current_player and st.session_state.players[p] > 0])
     
     if st.button("🔥 Attack!"):
-        if st.session_state.turn == "Player 1":
-            dmg = attack("Player 1", "Player 2")
-            st.write(f"Player 1 dealt {dmg} damage!")
-            st.session_state.turn = "Player 2"
-        else:
-            dmg = attack("Player 2", "Player 1")
-            st.write(f"Player 2 dealt {dmg} damage!")
-            st.session_state.turn = "Player 1"
+        damage = random.randint(10, 20)
+        st.session_state.players[target] = max(0, st.session_state.players[target] - damage)
+        
+        # Check if target died
+        if st.session_state.players[target] == 0:
+            st.session_state.active_players -= 1
+            
+        # Move to next player's turn
+        st.session_state.turn_idx = (st.session_state.turn_idx + 1) % NUM_PLAYERS
+        # Skip dead players
+        while st.session_state.players[player_names[st.session_state.turn_idx]] <= 0:
+            st.session_state.turn_idx = (st.session_state.turn_idx + 1) % NUM_PLAYERS
+            
         st.rerun()
 else:
-    winner = "Player 1" if st.session_state.p1_hp > 0 else "Player 2"
-    st.success(f"Game Over! {winner} Wins! 🎉")
+    winner = [name for name, hp in st.session_state.players.items() if hp > 0][0]
+    st.success(f"Game Over! {winner} is the Champion! 🎉")
 
 if st.button("Reset Game"):
-    st.session_state.p1_hp = 100
-    st.session_state.p2_hp = 100
-    st.session_state.turn = "Player 1"
+    st.session_state.players = {f"Player {i+1}": 100 for i in range(NUM_PLAYERS)}
+    st.session_state.turn_idx = 0
+    st.session_state.active_players = NUM_PLAYERS
     st.rerun()
